@@ -15,7 +15,8 @@ class IndustrialAutomationEnv(gym.Env):
             'qualities': [],
             'param1s': [],
             'param2s': [],
-            'rewards': []
+            'rewards': [],
+            'maintenances' = []
         }                                   #storing metrics for plotting later	
         self.fig, self.ax = None, None
         self.max_steps = 300 #300 episode length instead of 100 to allow more time for learning
@@ -32,6 +33,7 @@ class IndustrialAutomationEnv(gym.Env):
         self.param1 = np.random.uniform(0.4, 0.6) # Random control parameter 1 between 0.4 and 0.6
         self.param2 = np.random.uniform(0.4, 0.6) # Random control parameter 2 between 0.4 and 0.6
         self.steps = 0
+        self.maintenance_count = 0
 
         for key in self.metrics: # Clear metrics log for new episode
             self.metrics[key] = []
@@ -67,15 +69,20 @@ class IndustrialAutomationEnv(gym.Env):
         # Maintenance action (realistic logic)
         reward = 0.0
         if action == 5:
+            self.maintenance_count += 1
             # Effectiveness is sigmoid-shaped: early = wasteful, late = diminishing return
             effectiveness = 0.9 + 0.1 * np.tanh(5 * (self.time_since_maintenance - 0.25)) #How effective maintenance is;If maintenance is done too early (< 0.25), effectiveness is near 0.9 → wasteful, If it's timed well (~0.25–0.6), it can reach close to 1.0., # If too late (> 0.6), effectiveness drops back down to 0.9
             recovered = max(self.machine_health, effectiveness) #  The machine only recovers if the maintenance is better than current health.
             reward += 0.4 * (recovered - self.machine_health)  # Reward is based on how much health is gained.(up to 0.4 per full recovery)
 
+                # Reward for well-timed maintenance
+            if 0.2 < self.time_since_maintenance < 0.4:
+                reward += 0.2
+
             self.machine_health = recovered
             self.product_quality = min(0.95, self.product_quality + 0.01)
             self.time_since_maintenance = 0.0
-            reward -= 0.05  # small time/effort cost for maintenance
+            reward -= 0.05 + 0.01 * self.maintenance_count #Penalty for excessive maintenance count
 
         # Health decay (mild and consistent, worsens if overdue)
         health_decay = 0.01   #machine health decays by 0.01 every step
