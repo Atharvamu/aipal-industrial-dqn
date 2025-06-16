@@ -16,7 +16,7 @@ class IndustrialAutomationEnv(gym.Env):
             'param1s': [],
             'param2s': [],
             'rewards': [],
-            'maintenances' = []
+            'maintenances' : []
         }                                   #storing metrics for plotting later	
         self.fig, self.ax = None, None
         self.max_steps = 300 #300 episode length instead of 100 to allow more time for learning
